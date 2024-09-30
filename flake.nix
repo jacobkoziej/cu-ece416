@@ -22,6 +22,7 @@
         python-pkgs = python.withPackages (
           python-pkgs: with python-pkgs; [
             ipython
+            jupyter
             jupytext
             numpy
             scipy
