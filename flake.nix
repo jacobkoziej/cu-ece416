@@ -29,7 +29,13 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          packages = [ python-pkgs ];
+          packages =
+            [
+              python-pkgs
+            ]
+            ++ (with pkgs; [
+              treefmt2
+            ]);
         };
 
         formatter = pkgs.nixfmt-rfc-style;
