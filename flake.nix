@@ -25,6 +25,7 @@
             jupyter
             jupytext
             numpy
+            papermill
             scipy
           ]
         );
