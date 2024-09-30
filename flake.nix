@@ -34,6 +34,7 @@
               python-pkgs
             ]
             ++ (with pkgs; [
+              black
               treefmt2
             ]);
         };
