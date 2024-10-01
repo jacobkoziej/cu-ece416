@@ -24,6 +24,7 @@
             ipython
             jupyter
             jupytext
+            matplotlib
             numpy
             papermill
             scipy
