@@ -22,17 +22,16 @@
 import numpy as np
 import scipy
 
-from typing import Final
-
 from scipy.linalg import toeplitz
 from scipy.optimize import fsolve
 from scipy.signal import (
+    correlate,
     sosfilt,
     zpk2sos,
 )
 
 # %%
-p: Final[np.ndarray] = np.array(
+p = np.array(
     [
         [0.90, +0.80],
         [0.95, +0.80],
@@ -44,36 +43,31 @@ p: Final[np.ndarray] = np.array(
 # ## Task 1: Synthesize the Random Signal
 
 # %%
-p_max: Final[np.ndarray] = np.apply_along_axis(np.max, 1, np.abs(p))
-N_init: Final[np.ndarray] = np.ceil(
-    fsolve(lambda n, p: p**n - 0.01, np.ones(p_max.shape), p_max)
-)
+p_max = np.apply_along_axis(np.max, 1, np.abs(p))
+N_init = np.ceil(fsolve(lambda n, p: p**n - 0.01, np.ones(p_max.shape), p_max))
 
 # %% tags=["active-ipynb"]
 N_init
 
 # %%
-ITERATIONS: Final[int] = 50
-SEED: Final[int] = 0x432F2AF7
+ITERATIONS = 30
+SEED = 0x432F2AF7
 
-M: Final[np.ndarray] = np.array([2, 4, 10])
-N: Final[np.ndarray] = (N_init + ITERATIONS).astype(np.uint)
+M = np.array([2, 4, 10])
+N_0 = (ITERATIONS + M).astype(np.int64)
+N = (N_init + N_0).astype(np.int64)
 
-assert (ITERATIONS > M).all()
-
-mu: Final[int] = 0
-sigma: Final[int] = 1
-
-# %%
-rng: np.random.Generator = np.random.default_rng(SEED)
-
-v: Final[list[np.ndarray]] = [rng.normal(mu, sigma, n) for n in N]
-sos: Final[list[np.ndarray]] = [zpk2sos(np.zeros(p.shape), p, 1) for p in p]
-
-x: list[np.ndarray] = [sosfilt(sos, v) for (sos, v) in zip(sos, v)]
-x: Final[list[np.ndarray]] = [x[-ITERATIONS:] for x in x]
+mu = 0
+sigma = np.sqrt(1)
 
 # %%
-X: Final[list[np.ndarray]] = [
-    toeplitz(np.flip(x[:m]).T, x[(m - 1) :]) for (x, m) in zip(x, M)
-]
+rng = np.random.default_rng(SEED)
+
+v = [rng.normal(mu, sigma, n) for n in N]
+sos = [zpk2sos([0], p, 1) for p in p]
+
+x = [sosfilt(sos, v) for (sos, v) in zip(sos, v)]
+x = [x[-n_0:] for (x, n_0) in zip(x, N_0)]
+
+# %%
+X = [[toeplitz(np.flip(x[:m]), x[(m - 1) :]) for m in M] for x in x]
