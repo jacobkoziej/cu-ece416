@@ -18,6 +18,12 @@
 # noteboook.py -- ps1: initial experimentation
 # Copyright (C) 2024  Jacob Koziej <jacobkoziej@gmail.com>
 
+# %% tags=["parameters"]
+ITERATIONS = None
+M = None
+p_0 = None
+p_1 = None
+
 # %%
 import numpy as np
 import scipy
@@ -25,37 +31,28 @@ import scipy
 from scipy.linalg import toeplitz
 from scipy.optimize import fsolve
 from scipy.signal import (
-    correlate,
     sosfilt,
     zpk2sos,
 )
 
 # %%
-p = np.array(
-    [
-        [0.90, +0.80],
-        [0.95, +0.80],
-        [0.95, -0.90],
-    ]
-)
+p = np.array([p_0, p_1])
 
 # %% [markdown]
 # ## Task 1: Synthesize the Random Signal
 
 # %%
-p_max = np.apply_along_axis(np.max, 1, np.abs(p))
-N_init = np.ceil(fsolve(lambda n, p: p**n - 0.01, np.ones(p_max.shape), p_max))
+p_max = np.max(np.abs(p))
+N_init = int(np.ceil(fsolve(lambda n, p: p**n - 0.01, 1, p_max)).item())
 
 # %% tags=["active-ipynb"]
 N_init
 
 # %%
-ITERATIONS = 30
 SEED = 0x432F2AF7
 
-M = np.array([2, 4, 10])
-N_0 = (ITERATIONS + M).astype(np.int64)
-N = (N_init + N_0).astype(np.int64)
+N_0 = ITERATIONS + M - 1
+N = N_init + N_0
 
 mu = 0
 sigma = np.sqrt(1)
@@ -63,11 +60,11 @@ sigma = np.sqrt(1)
 # %%
 rng = np.random.default_rng(SEED)
 
-v = [rng.normal(mu, sigma, n) for n in N]
-sos = [zpk2sos([0], p, 1) for p in p]
+v = rng.normal(mu, sigma, N)
+sos = zpk2sos([0], p, 1)
 
-x = [sosfilt(sos, v) for (sos, v) in zip(sos, v)]
-x = [x[-n_0:] for (x, n_0) in zip(x, N_0)]
+x = sosfilt(sos, v)
+x = x[-N_0:]
 
 # %%
-X = [[toeplitz(np.flip(x[:m]), x[(m - 1) :]) for m in M] for x in x]
+X = toeplitz(np.flip(x[:M]), x[(M - 1) :])
