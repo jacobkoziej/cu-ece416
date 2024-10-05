@@ -40,6 +40,7 @@
             ]
             ++ (with pkgs; [
               black
+              scons
               treefmt2
             ]);
         };
