@@ -263,8 +263,9 @@ ax = plot_r_vs_r_hat(r[: len(r_hat)], r_hat)
 # What is the appropriate choice for $\alpha$?
 
 # %% [markdown]
-# We know that $\lambda \approx \frac{1}{N} \sigma^2$, so in our case
-# we'd have that $\alpha$ is equal to the number of columns of $X$.
+# We know that $\lambda \approx \frac{1}{N} \sigma^2$ and $X = U \Sigma
+# V^{\text{H}}$, so it follows that $\alpha$ is equal to the square root
+# of the number of columns of $X$.
 
 # %% [markdown]
 # 6. As another check, approximate $r[0]$ with your computed PSD.
