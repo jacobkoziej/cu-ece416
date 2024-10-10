@@ -29,6 +29,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 
+from scipy.fft import (
+    fft,
+    fftshift,
+)
 from scipy.linalg import toeplitz
 from scipy.optimize import fsolve
 from scipy.signal import (
@@ -172,17 +176,30 @@ ax = plot_eig(eig_max, "max")
 # \lambda_{\text{min}}$ and $\lambda_{\text{max}} \le S_{\text{max}}$.
 
 # %%
-S = scipy.fft.fft(r)
-S = np.abs(S[: ((S.shape[-1] // 2) + 1)])
+S = fftshift(fft(r))
 
 
 # %%
 def plot_S(S):
     ax = plt.subplot()
 
-    ax.plot(10 * np.log10(S))
-    ticks = ["0", r"$\pi / 4$", r"$\pi / 2$", r"$3\pi / 4$", r"$\pi$"]
-    ax.set_xticks(np.arange(0, len(S), (len(S) - 1) / (len(ticks) - 1)), ticks)
+    omega = np.linspace(-np.pi, np.pi, len(S))
+
+    ax.plot(omega, 10 * np.log10(np.abs(S)))
+
+    ticks = [
+        r"$-\pi$",
+        r"$-3\pi / 4$",
+        r"$-\pi / 2$",
+        r"$-\pi / 4$",
+        "0",
+        r"$\pi / 4$",
+        r"$\pi / 2$",
+        r"$3\pi / 4$",
+        r"$\pi$",
+    ]
+
+    ax.set_xticks(np.linspace(omega[0], omega[-1], len(ticks)), ticks)
     ax.set_xlabel(r"$\omega$ [rad]")
     ax.set_ylabel(r"$\left|S(\omega)\right|$ [dB]")
 
@@ -253,7 +270,7 @@ ax = plot_r_vs_r_hat(r[: len(r_hat)], r_hat)
 # 6. As another check, approximate $r[0]$ with your computed PSD.
 
 # %%
-r_0_approx = 2 * np.sum(S * (np.pi / len(S))) / (2 * np.pi)
+r_0_approx = np.sum(S * (2 * np.pi / len(S))) / (2 * np.pi)
 
 # %% tags=["active-ipynb"]
 r[0] - r_0_approx
