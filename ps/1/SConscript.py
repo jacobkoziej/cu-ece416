@@ -8,7 +8,7 @@ from pathlib import Path
 
 Import("env")
 
-ITERATIONS = 50
+ITERATIONS = 50000
 
 p_n = [
     {
