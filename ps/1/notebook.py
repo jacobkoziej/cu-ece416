@@ -29,6 +29,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 
+from einops import (
+    einsum,
+    rearrange,
+    reduce,
+    repeat,
+)
 from scipy.fft import (
     fft,
     fftshift,
@@ -275,3 +281,176 @@ r_0_approx = np.sum(S * (2 * np.pi / len(S))) / (2 * np.pi)
 
 # %% tags=["active-ipynb"]
 r[0] - r_0_approx
+
+# %% [markdown]
+# ## LMS Algorithm
+
+# %%
+a = np.array([-np.sum(p), np.prod(p)])
+K = 100
+
+# %%
+v = rng.normal(mu, sigma, (K, N))
+
+x = sosfilt(sos, v)
+x = x[:, -N_0:]
+
+# %%
+w_opt = np.pad(a, (0, M - len(a)), constant_values=0)
+
+# %% tags=["active-ipynb"]
+w_opt
+
+# %%
+mu_min = 0
+mu_max = 2 / eig_max[-1]
+
+# %%
+mu_start = 1 / np.max(np.abs(S))
+
+# %% tags=["active-ipynb"]
+mu_start
+
+# %%
+scale = {
+    2: 0.1,
+    4: 0.01,
+    10: 0.001,
+}
+
+# %%
+mu = scale[M] * mu_start * np.array([0.05, 0.5, 1])
+
+# %% tags=["active-ipynb"]
+mu
+
+# %%
+assert (mu_min < mu_start) and (mu_start < mu_max)
+assert (mu_min < mu).all() and (mu < mu_max).all()
+
+# %%
+d = x[:, : -(M - 1)]
+d = rearrange(d, "K N -> N K")
+d = repeat(d, "N K -> N K mu", mu=len(mu))
+
+X = np.array([toeplitz(np.flip(x[:M]), x[(M - 1) :]) for x in x])
+
+u = rearrange(X, "K M N -> N K M")
+u = repeat(u, "N K M -> N K mu M", mu=len(mu))
+
+
+# %%
+def lms(D, U, mu, w):
+    W_shape = [*D.shape, *w.shape]
+
+    W_shape[0] = W_shape[0] + 1
+
+    E = np.zeros(D.shape)
+    W = np.zeros(W_shape)
+
+    mu = repeat(mu, "mu -> K mu w", K=W_shape[1], w=W_shape[-1])
+
+    for d, u, e, w, w_n in zip(D, U, E, W[:-1], W[1:]):
+        e[...] = d - einsum(w.conj(), u, "K mu M0, K mu M1 -> K mu")
+
+        e = repeat(e, "K mu -> K mu w", w=w.shape[-1])
+
+        w_n[...] = w + mu * u * e.conj()
+
+    return E, W[:-1]
+
+
+# %%
+e, w = lms(d, u, mu, w_opt)
+
+J = e**2
+D = np.mean((w - w_opt) ** 2, axis=-1)
+
+J_min = sigma**2
+J_inf = reduce(J, "N K mu -> N mu", "mean")[-1]
+
+misadjustment = J_inf / J_min
+
+# %% tags=["active-ipynb"]
+misadjustment
+
+
+# %%
+def plot_J(J, J_min, mu, K):
+    fig, ax = plt.subplots()
+
+    n = np.linspace(0, len(J), 5)
+
+    ax.plot(J)
+    ax.hlines(J_min, n[0], n[-1], color="black", linestyles="dashed")
+
+    fig.legend(
+        [f"{mu:.2E}" for mu in mu] + [r"$J_{\text{min}}$"],
+        title=r"$\mu$",
+        loc="outside right upper",
+    )
+
+    ax.set_xticks(n)
+
+    ax.set_xlabel("$n$")
+    ax.set_ylabel("$J$")
+    ax.set_title(f"Learning Curve ({K = })")
+
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %%
+def plot_D(D, mu, K):
+    fig, ax = plt.subplots()
+
+    n = np.linspace(0, len(D), 5)
+
+    ax.plot(D)
+
+    fig.legend(
+        [f"{mu:.2E}" for mu in mu],
+        title=r"$\mu$",
+        loc="outside right upper",
+    )
+
+    ax.set_xticks(n)
+
+    ax.set_xlabel("$n$")
+    ax.set_ylabel("$D$")
+    ax.set_title(f"Mean-Square Deviation ({K = })")
+
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %% tags=["active-ipynb"]
+_, ax = plot_J(reduce(J, "N K mu -> N mu", "mean"), J_min, mu, K)
+
+# %% tags=["active-ipynb"]
+_, ax = plot_J(J[:, 0, :], J_min, mu, 1)
+
+# %% tags=["active-ipynb"]
+_, ax = plot_D(reduce(D, "N K mu -> N mu", "mean"), mu, K)
+
+# %% tags=["active-ipynb"]
+_, ax = plot_D(D[:, 0, :], mu, 1)
+
+# %%
+w_final = w[-1]
+w_final = reduce(w_final, "K mu M -> mu M", "mean")
+
+# %% tags=["active-ipynb"]
+w_final
+
+# %% [markdown]
+# Some comments:
+# - As $\mu$ increases, so does the rate of the convergence, however, the
+#   misadjustment is inversely related to $\mu$.
+# - As $M$ increases, the upper bound for $\mu$ stability decreases.
+# - As the poles of $H(z)$ approach the unit circle, $1/S_{\text{max}}$
+#   becomes a less reasonable choice for $\mu$.
+# - The deviation goes up after reaching an "ideal" value.
+# - Only $a_1$ appears close in the final $\mathbf{w}$.
