@@ -121,7 +121,7 @@ R = toeplitz(r[:L])
 
 # %%
 def get_eig(A: np.ndarray):
-    return np.flip(np.sort(np.linalg.eig(A).eigenvalues), axis=-1)
+    return np.flip(np.sort(np.linalg.eigvals(A)), axis=-1)
 
 
 # %%
