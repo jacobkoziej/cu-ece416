@@ -350,9 +350,9 @@ def lms(D, U, mu, w):
     mu = repeat(mu, "mu -> K mu w", K=W_shape[1], w=W_shape[-1])
 
     for d, u, e, w, w_n in zip(D, U, E, W[:-1], W[1:]):
-        e[...] = d - einsum(w.conj(), u, "K mu M0, K mu M1 -> K mu")
+        e[...] = d - einsum(w.conj(), u, "K mu M, K mu M -> K mu")
 
-        e = repeat(e, "K mu -> K mu w", w=w.shape[-1])
+        e = repeat(e, "K mu -> K mu M", M=w.shape[-1])
 
         w_n[...] = w + mu * u * e.conj()
 
