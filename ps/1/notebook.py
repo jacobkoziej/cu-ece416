@@ -393,6 +393,7 @@ def plot_J(J, J_min, mu, K):
 
     ax.set_xlabel("$n$")
     ax.set_ylabel("$J$")
+    ax.set_ylim(0, 20)
     ax.set_title(f"Learning Curve ({K = })")
 
     fig.tight_layout()
