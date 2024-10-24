@@ -257,7 +257,7 @@ def plot_r_vs_r_hat(r, r_hat):
 
 
 # %% tags=["active-ipynb"]
-r_hat = R_hat[0, :]
+r_hat = R_hat[0]
 
 ax = plot_r_vs_r_hat(r[: len(r_hat)], r_hat)
 
@@ -430,13 +430,13 @@ def plot_D(D, mu, K):
 _, ax = plot_J(reduce(J, "N K mu -> N mu", "mean"), J_min, mu, K)
 
 # %% tags=["active-ipynb"]
-_, ax = plot_J(J[:, 0, :], J_min, mu, 1)
+_, ax = plot_J(J[:, 0], J_min, mu, 1)
 
 # %% tags=["active-ipynb"]
 _, ax = plot_D(reduce(D, "N K mu -> N mu", "mean"), mu, K)
 
 # %% tags=["active-ipynb"]
-_, ax = plot_D(D[:, 0, :], mu, 1)
+_, ax = plot_D(D[:, 0], mu, 1)
 
 # %%
 w_final = w[-1]
