@@ -19,10 +19,13 @@
 # Copyright (C) 2024  Jacob Koziej <jacobkoziej@gmail.com>
 
 # %% tags=["parameters"]
-ITERATIONS = None
 M = None
 p_0 = None
 p_1 = None
+
+# %%
+ITERATIONS = 20_000
+SEED = 0x432F2AF7
 
 # %%
 import matplotlib.pyplot as plt
@@ -60,8 +63,6 @@ N_init = int(np.ceil(fsolve(lambda n, p: p**n - 0.01, 1, p_max)).item())
 N_init
 
 # %%
-SEED = 0x432F2AF7
-
 N_0 = ITERATIONS + M - 1
 N = N_init + N_0
 

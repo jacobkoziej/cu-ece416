@@ -8,8 +8,6 @@ from pathlib import Path
 
 Import("env")
 
-ITERATIONS = 50000
-
 p_n = [
     {
         "p_0": 0.9,
@@ -40,11 +38,9 @@ for m in M:
             flags += [f"--parameters {k} {v}"]
 
         extension += [
-            f"ITERATIONS_{ITERATIONS}",
             f"M_{m}",
         ]
         flags += [
-            f"--parameters ITERATIONS {ITERATIONS}",
             f"--parameters M {m}",
         ]
 
