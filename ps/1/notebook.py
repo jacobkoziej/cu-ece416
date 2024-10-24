@@ -455,3 +455,118 @@ w_final
 # - The deviation goes up after reaching an "ideal" value.
 # - Both $-a_1$ and $-a_2$ appears close to the "ideal" value in the
 #   final $\mathbf{w}$.
+
+
+# %% [markdown]
+# ## RLS Algorithm
+
+# %%
+llambda = 0.9
+delta = 1
+
+# %%
+u = u[: min(ITERATIONS, 100), :, 0]
+d = d[: min(ITERATIONS, 100), :, 0]
+
+
+# %%
+def rls(llambda, delta, U, D, w):
+    shape = [*U.shape]
+    shape[0] = shape[0] + 1
+
+    P0 = (delta**-1) * np.identity(shape[-1])
+    P0 = repeat(P0, "M0 M1 -> N K M0 M1", N=shape[0], K=shape[1])
+
+    E = np.zeros(D.shape)
+
+    W = np.zeros(shape)
+
+    for u, P_prev, P, d, e, w_prev, w in zip(U, P0[:-1], P0[1:], D, E, W[:-1], W[1:]):
+        s = einsum(P_prev, u, "K M0 M1, K M1 -> K M0")
+
+        k = (llambda + einsum(u.conj(), s, "K M, K M -> K")) ** -1
+        k = k[:, None] * s
+
+        e[...] = d - einsum(w_prev.conj(), u, "K M, K M -> K")
+        w[...] = w_prev + (k * e.conj()[:, None])
+
+        P[...] = P_prev - einsum(k, s.conj(), "K M0, K M1 -> K M0 M1")
+        P[...] = P * (llambda**-1)
+
+        assert (np.linalg.eigvals(P_prev) > 0).all()
+
+    return E, W[:-1]
+
+
+# %%
+e, w = rls(llambda, delta, u, d, w_opt)
+
+J = e**2
+D = np.mean((w - w_opt) ** 2, axis=-1)
+
+J_inf = reduce(J, "N K -> N", "mean")[-1]
+
+misadjustment = J_inf / J_min
+
+# %% tags=["active-ipynb"]
+misadjustment
+
+
+# %%
+def plot_J(J, J_min, K):
+    fig, ax = plt.subplots()
+
+    n = np.linspace(0, len(J), 5)
+
+    ax.plot(J)
+    ax.hlines(J_min, n[0], n[-1], color="black", linestyles="dashed")
+
+    ax.set_xticks(n)
+
+    ax.set_xlabel("$n$")
+    ax.set_ylabel("$J$")
+    ax.set_ylim(0, 5)
+    ax.set_title(f"Learning Curve ({K = })")
+
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %%
+def plot_D(D, K):
+    fig, ax = plt.subplots()
+
+    n = np.linspace(0, len(D), 5)
+
+    ax.plot(D)
+
+    ax.set_xticks(n)
+
+    ax.set_xlabel("$n$")
+    ax.set_ylabel("$D$")
+    ax.set_title(f"Mean-Square Deviation ({K = })")
+
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %% tags=["active-ipynb"]
+_, ax = plot_J(reduce(J, "N K -> N", "mean"), J_min, K)
+
+# %% tags=["active-ipynb"]
+_, ax = plot_D(reduce(D, "N K -> N", "mean"), K)
+
+# %%
+w_final = w[-1]
+w_final = reduce(w_final, "K M -> M", "mean")
+
+# %% tags=["active-ipynb"]
+w_final
+
+# %% [markdown]
+# Some comments:
+# - The misadjustment appears higher than LMS.
+# - Both $-a_1$ and $-a_2$ appears closer to the "ideal" value in the
+#   final $\mathbf{w}$ compared to LMS.
