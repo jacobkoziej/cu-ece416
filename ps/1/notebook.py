@@ -296,7 +296,7 @@ x = sosfilt(sos, v)
 x = x[:, -N_0:]
 
 # %%
-w_opt = np.pad(a, (0, M - len(a)), constant_values=0)
+w_opt = np.pad(-a, (0, M - len(a)), constant_values=0)
 
 # %% tags=["active-ipynb"]
 w_opt
