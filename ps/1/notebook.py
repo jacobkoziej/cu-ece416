@@ -290,10 +290,8 @@ a = np.array([-np.sum(p), np.prod(p)])
 K = 100
 
 # %%
-v = rng.normal(mu, sigma, (K, N))
-
+v = rng.normal(mu, sigma, (K, N + 1))
 x = sosfilt(sos, v)
-x = x[:, -N_0:]
 
 # %%
 w_opt = np.pad(-a, (0, M - len(a)), constant_values=0)
@@ -329,10 +327,11 @@ assert (mu_min < mu_start) and (mu_start < mu_max)
 assert (mu_min < mu).all() and (mu < mu_max).all()
 
 # %%
-d = x[:, : -(M - 1)]
+d = x[:, -((N_0 - (M - 2)) - 1) :]
 d = rearrange(d, "K N -> N K")
 d = repeat(d, "N K -> N K mu", mu=len(mu))
 
+x = x[:, -(N_0 + 1) : -1]
 X = np.array([toeplitz(np.flip(x[:M]), x[(M - 1) :]) for x in x])
 
 u = rearrange(X, "K M N -> N K M")
