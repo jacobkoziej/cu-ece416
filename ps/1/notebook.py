@@ -450,7 +450,8 @@ w_final
 # - As $\mu$ increases, so does the rate of the convergence, however, the
 #   misadjustment is inversely related to $\mu$.
 # - As $M$ increases, the upper bound for $\mu$ stability decreases.
-# - As the poles of $H(z)$ approach the unit circle, $1/S_{\text{max}}$
-#   becomes a less reasonable choice for $\mu$.
+# - As the poles of $H(z)$ approach one another, the stability of the
+#   algorithm deteriorates.
 # - The deviation goes up after reaching an "ideal" value.
-# - Only $a_1$ appears close in the final $\mathbf{w}$.
+# - Both $-a_1$ and $-a_2$ appears close to the "ideal" value in the
+#   final $\mathbf{w}$.
