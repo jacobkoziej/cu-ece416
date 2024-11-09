@@ -54,7 +54,6 @@ def gen_a(aoa):
 # %%
 def gen_r(m, d):
     assert m.shape[-1] == 3
-    assert m.ndim <= 2
 
     return m * d
 
