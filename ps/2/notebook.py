@@ -63,15 +63,11 @@ def gen_S(a, r, llambda):
     assert a.shape[-1] == 3
     assert r.shape[-1] == 3
 
-    if a.ndim == 1:
-        a = rearrange(a, "i -> 1 i")
-    if r.ndim == 1:
-        r = rearrange(r, "i -> 1 i")
+    if a.ndim <= 2:
+        a = rearrange(a, "... xyz -> ... 1 xyz")
 
-    assert a.ndim <= 3
-    assert r.ndim <= 3
-
-    assert a.shape == r.shape
+    if r.ndim <= 1:
+        r = rearrange(r, "xyz -> 1 xyz")
 
     S = -1j * np.pi * einsum(a, r, "... M i, ... M i -> ... M") / llambda
     S = np.exp(S) / np.sqrt(S.shape[-1])
