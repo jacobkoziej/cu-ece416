@@ -7,7 +7,7 @@ includes = [
   "*.nix",
 ]
 
-[formatter.python]
+[formatter.py]
 command = "black"
 options = [
   "--line-length=79",
