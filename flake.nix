@@ -17,6 +17,8 @@
           inherit system;
         };
 
+        lib = pkgs.lib;
+
         python = pkgs.python3;
 
         python-pkgs = python.withPackages (
@@ -34,22 +36,32 @@
 
       in
       {
-        devShells.default = pkgs.mkShell {
-          packages =
-            [
-              python-pkgs
-            ]
-            ++ (with pkgs; [
-              black
-              mdformat
-              ruff
-              scons
-              shfmt
-              toml-sort
-              treefmt2
-              yamlfmt
-            ]);
-        };
+        devShells.default = pkgs.mkShell (
+          let
+            pre-commit-bin = "${lib.getBin pkgs.pre-commit}/bin/pre-commit";
+          in
+          {
+            packages =
+              [
+                python-pkgs
+              ]
+              ++ (with pkgs; [
+                black
+                mdformat
+                pre-commit
+                ruff
+                scons
+                shfmt
+                toml-sort
+                treefmt2
+                yamlfmt
+              ]);
+
+            shellHook = ''
+              ${pre-commit-bin} install --allow-missing-config > /dev/null
+            '';
+          }
+        );
 
         formatter = pkgs.nixfmt-rfc-style;
       }
