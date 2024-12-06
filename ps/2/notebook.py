@@ -81,7 +81,9 @@ def gen_A(rng, dB, N):
     scale = np.sqrt(10 ** (dB / 10))
     scale = repeat(scale, "... L -> ... N L", N=N)
 
-    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(2)
+    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(
+        2
+    )
 
 
 # %%
@@ -91,7 +93,9 @@ def gen_V(rng, dB, N):
     scale = np.sqrt((10 ** (dB / 10)) / M)
     scale = repeat(scale, "... M -> ... N M", N=N)
 
-    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(2)
+    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(
+        2
+    )
 
 
 def gen_X(S, A, V):
@@ -220,7 +224,9 @@ def plot_eigvals(eigvals):
     ax.set_xticks(range(len(eigvals)))
     ax.set_xticklabels([])
     ax.set_xlabel(r"$|\,\lambda|$")
-    ax.set_title(r"Eigen Values of $R_{\text{theoretical}}$ in Descending Order")
+    ax.set_title(
+        r"Eigen Values of $R_{\text{theoretical}}$ in Descending Order"
+    )
 
     return ax
 

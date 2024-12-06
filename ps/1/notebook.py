@@ -482,7 +482,9 @@ def rls(llambda, delta, U, D, w):
 
     W = np.zeros(shape)
 
-    for u, P_prev, P, d, e, w_prev, w in zip(U, P0[:-1], P0[1:], D, E, W[:-1], W[1:]):
+    for u, P_prev, P, d, e, w_prev, w in zip(
+        U, P0[:-1], P0[1:], D, E, W[:-1], W[1:]
+    ):
         s = einsum(P_prev, u, "K M0 M1, K M1 -> K M0")
 
         k = (llambda + einsum(u.conj(), s, "K M, K M -> K")) ** -1
