@@ -24,3 +24,13 @@ options = [
 includes = [
   "*.py",
 ]
+
+[global]
+excludes = [
+  "*.lock",
+  ".editorconfig",
+  ".gitignore",
+  ".gitmodules",
+  "LICENSE.md",
+  "site_scons/site_tools/github/jacobkoziej/scons-tools",
+]
