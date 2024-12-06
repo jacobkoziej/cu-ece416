@@ -35,6 +35,16 @@ includes = [
   "*.py",
 ]
 
+[formatter.toml]
+command = "toml-sort"
+options = [
+  "--in-place",
+  "--trailing-comma-inline-array",
+]
+includes = [
+  "*.toml",
+]
+
 [global]
 excludes = [
   "*.lock",
