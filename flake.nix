@@ -41,6 +41,7 @@
             ]
             ++ (with pkgs; [
               black
+              mdformat
               ruff
               scons
               treefmt2
