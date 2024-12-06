@@ -44,6 +44,7 @@
               mdformat
               ruff
               scons
+              toml-sort
               treefmt2
             ]);
         };
