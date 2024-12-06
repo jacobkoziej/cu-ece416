@@ -18,6 +18,8 @@
 # noteboook.py -- ps1: initial experimentation
 # Copyright (C) 2024  Jacob Koziej <jacobkoziej@gmail.com>
 
+# ruff: noqa: E402
+
 # %% tags=["parameters"]
 M = None
 p_0 = None
@@ -30,7 +32,6 @@ SEED = 0x432F2AF7
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
 
 from einops import (
     einsum,
@@ -153,7 +154,9 @@ ax = plot_eig(eig)
 # %%
 eig = [eig]
 
-eig += [get_eig(R[:l, :l]) for l in range(eig[0].shape[-1], 0, -1)]
+eig += [
+    get_eig(R[:l, :l]) for l in range(eig[0].shape[-1], 0, -1)  # noqa: E741
+]
 
 eig_min = np.flip(np.array([eig[-1] for eig in eig]).T, axis=-1)
 eig_max = np.flip(np.array([eig[0] for eig in eig]).T, axis=-1)

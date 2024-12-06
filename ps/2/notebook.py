@@ -18,6 +18,8 @@
 # noteboook.py -- ps2: beamforming problems
 # Copyright (C) 2024  Jacob Koziej <jacobkoziej@gmail.com>
 
+# ruff: noqa: E402
+
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
