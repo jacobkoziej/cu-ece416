@@ -28,7 +28,10 @@ from einops import (
     parse_shape,
     repeat,
 )
-from numpy.linalg import eigvals
+from numpy.linalg import (
+    eigvals,
+    qr,
+)
 from scipy.linalg import toeplitz
 from scipy.signal import lfilter
 
@@ -131,3 +134,58 @@ def rls(llambda, delta, D, A):
         assert (eigvals(P_prev) > 0).all()
 
     return W[1:].T, E, K.T, P0[-1]
+
+
+# %%
+def invqrdrls(llambda, delta, D, U):
+    shape = parse_shape(U, "M N")
+
+    shape["N"] += 1
+
+    N = shape["N"]
+    M = shape["M"]
+
+    Pch0 = (delta ** (-1 / 2)) * np.identity(M)
+    Pch0 = repeat(Pch0, "... -> N ...", N=N)
+
+    K = np.zeros((N - 1, M))
+    E = np.zeros(N - 1)
+    W = np.zeros((N, M))
+
+    gamma_inv_sqrt0 = np.zeros(N - 1)
+
+    U = U.T
+
+    lambda_sqrt = llambda ** (-1 / 2)
+
+    for u, Pch_prev, Pch, d, k, e, w_prev, w, gamma_inv_sqrt in zip(
+        U,
+        Pch0[:-1],
+        Pch0[1:],
+        D,
+        K,
+        np.nditer(E, op_flags=["readwrite"]),
+        W[:-1],
+        W[1:],
+        np.nditer(gamma_inv_sqrt0, op_flags=["readwrite"]),
+    ):
+        A = np.block(
+            [
+                [1, lambda_sqrt * einsum(u.conj(), Pch_prev, "i, i j -> j")],
+                [np.zeros((M, 1)), lambda_sqrt * Pch_prev],
+            ]
+        )
+
+        _, R = qr(A.T.conj())
+
+        R = R.T.conj()
+
+        gamma_inv_sqrt[...] = R[0, 0]
+        gamma_inv_sqrt_k = R[1:, 0]
+        Pch[...] = R[1:, 1:]
+
+        k[...] = (gamma_inv_sqrt**-1) * gamma_inv_sqrt_k
+        e[...] = d - (w_prev.conj() @ u)
+        w[...] = w_prev + k * e.conj()
+
+    return W[1:].T, E, K.T, gamma_inv_sqrt0, Pch0[-1]
