@@ -23,6 +23,12 @@
 # %%
 import numpy as np
 
+from einops import (
+    einsum,
+    parse_shape,
+    repeat,
+)
+from numpy.linalg import eigvals
 from scipy.linalg import toeplitz
 from scipy.signal import lfilter
 
@@ -86,3 +92,42 @@ y_m_max = toeplitz(np.flip(y_m_max[:M_MAX]), y_m_max[(M_MAX - 1) :])
 
 # %%
 x_k = x[N_TRAIN + M_MAX - 1 : -(M_0 + 1)]
+
+
+# %%
+def rls(llambda, delta, D, A):
+    shape = parse_shape(A, "M N")
+
+    shape["N"] += 1
+
+    N = shape["N"]
+    M = shape["M"]
+
+    P0 = (delta**-1) * np.identity(M)
+    P0 = repeat(P0, "... -> N ...", N=N)
+
+    K = np.zeros((N - 1, M))
+    E = np.zeros(N - 1)
+    W = np.zeros((N, M))
+
+    A = A.T
+
+    for a, P_prev, P, d, k, e, w_prev, w in zip(
+        A,
+        P0[:-1],
+        P0[1:],
+        D,
+        K,
+        np.nditer(E, op_flags=["readwrite"]),
+        W[:-1],
+        W[1:],
+    ):
+        s = P_prev @ a
+        k[...] = ((llambda + (a.conj() @ s)) ** -1) * s
+        e[...] = d - (w_prev.conj() @ a)
+        w[...] = w_prev + (k * e.conj())
+        P[...] = (llambda**-1) * (P_prev - einsum(k, s.conj(), "i, j -> i j"))
+
+        assert (eigvals(P_prev) > 0).all()
+
+    return W[1:].T, E, K.T, P0[-1]
