@@ -30,6 +30,7 @@ from einops import (
 )
 from numpy.linalg import (
     eigvals,
+    norm,
     qr,
 )
 from scipy.linalg import toeplitz
@@ -189,3 +190,73 @@ def invqrdrls(llambda, delta, D, U):
         w[...] = w_prev + k * e.conj()
 
     return W[1:].T, E, K.T, gamma_inv_sqrt0, Pch0[-1]
+
+
+# %%
+def snir(y, x):
+    return -10 * np.log10(np.mean((y - x) ** 2))
+
+
+# %% [markdown]
+# ### Theoretical Values
+
+# %%
+SNIR_raw = snir(y_m_max[-1], x_k)
+
+# %% tags=["active-ipynb"]
+SNIR_raw
+
+# %%
+SNIR_theory_raw = -10 * np.log10(4 * np.abs(ALPHA) ** 2 + sigma_v**2)
+
+# %% tags=["active-ipynb"]
+SNIR_theory_raw
+
+# %%
+SNIR_optimal = -10 * np.log10(sigma_v**2)
+
+# %% tags=["active-ipynb"]
+SNIR_optimal
+
+# %% [markdown]
+# ### RLS
+
+# %%
+W, E, K, P_final = rls(LAMBDA, DELTA, d, A)
+
+w_f = W[:, -1]
+
+# %% tags=["active-ipynb"]
+w_f
+
+# %%
+x_est = einsum(w_f.conj(), y_m_max, "i, i j -> j")
+
+# %%
+SNIR_equalized = snir(x_est, x_k)
+
+# %% tags=["active-ipynb"]
+SNIR_equalized
+
+# %% [markdown]
+# ### Inverse QRD RLS
+
+# %%
+W_inv, E_inv, K_inv, gamma_inv, Pch_final = invqrdrls(LAMBDA, DELTA, d, A)
+
+w_inv_f = W_inv[:, -1]
+
+# %% tags=["active-ipynb"]
+w_inv_f
+
+# %%
+x_est = einsum(w_inv_f.conj(), y_m_max, "i, i j -> j")
+
+# %%
+SNIR_inv_equalized = snir(x_est, x_k)
+
+# %% tags=["active-ipynb"]
+SNIR_inv_equalized
+
+# %% tags=["active-ipynb"]
+norm(P_final - (Pch_final @ Pch_final.T.conj()))
