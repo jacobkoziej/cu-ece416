@@ -8,7 +8,7 @@ Import("env")
 
 ps = []
 
-for i in range(1, 5):
+for i in range(1, 6):
     ps += SConscript(
         f"{i}/SConscript.py",
         exports=[
