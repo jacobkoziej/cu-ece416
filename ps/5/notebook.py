@@ -100,3 +100,38 @@ def uhl_measurement(x, t, Q_cholesky=None, *, rng=None):
     ) + Q_cholesky @ rng.normal(0, 1, (2, 1))
 
     return y
+
+
+# %% [markdown]
+# ## Initial Conditions
+
+# %%
+Q_x = np.diag([10e-8, 10e-8, 2.404e-5, 2.404e-5, 10e-8])
+Q_y = np.diag([1, 10e-3])
+
+# %%
+x = [np.array([[6400.4, 349.14, -1.8093, -6.7967, 0.6932]]).T]
+
+x_prediction = [np.array([[6400, 350, -2, -7, 0.65]]).T]
+x_estimate = []
+
+K_prediction = [np.diag([10e-4, 10e-4, 10e-4, 10e-4, 1])]
+K_estimate = []
+
+# %%
+N_x = 5
+
+w = np.ones(2 * N_x + 1) / 3
+w[1:] = (1 - w[1:]) / (2 * N_x)
+
+sigma_points = np.concatenate(
+    [
+        np.sqrt(N_x / (1 - w[0])) * np.eye(N_x, N_x + 1, 1),
+        -np.sqrt(N_x / (1 - w[0])) * np.eye(N_x),
+    ],
+    axis=1,
+)
+
+# %%
+DT = 0.1
+STEPS = 500
