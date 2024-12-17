@@ -30,7 +30,7 @@ from numpy.linalg import norm
 
 
 # %%
-def uhl_process(x, t, Q_cholesky=None, *, rng=None):
+def uhl_process(x, Q_cholesky=None, *, rng=None):
     beta_0 = 0.597983
 
     G_m_0 = 3.986e5
@@ -67,11 +67,10 @@ def uhl_process_simulation(x, t, dt, method="e", Q_cholesky=None, *, rng=None):
     assert method == "e" or method == "m"
 
     x_update = (
-        uhl_process(x, t, Q_cholesky, rng=rng)
+        uhl_process(x, Q_cholesky, rng=rng)
         if method == "e"
         else uhl_process(
-            x + dt / 2 * uhl_process(x, t),
-            t + dt / 2,
+            x + dt / 2 * uhl_process(x, np.zeros((x.shape[0], x.shape[0]))),
             Q_cholesky,
             rng=rng,
         )
@@ -83,7 +82,7 @@ def uhl_process_simulation(x, t, dt, method="e", Q_cholesky=None, *, rng=None):
 
 
 # %%
-def uhl_measurement(x, t, Q_cholesky=None, *, rng=None):
+def uhl_measurement(x, Q_cholesky=None, *, rng=None):
     RADAR_CENTER = np.array([[6375, 0]]).T
 
     if Q_cholesky is None:
