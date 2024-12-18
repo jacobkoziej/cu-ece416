@@ -21,6 +21,7 @@
 # ruff: noqa: E402
 
 # %%
+import matplotlib.pyplot as plt
 import numpy as np
 
 from collections import namedtuple
@@ -286,6 +287,7 @@ Q_y = np.diag([1, 10e-3])
 
 # %%
 x = [np.array([[6400.4, 349.14, -1.8093, -6.7967, 0.6932]]).T]
+y = []
 
 x_prediction = [np.array([[6400, 350, -2, -7, 0.65]]).T]
 x_estimate = []
@@ -296,3 +298,87 @@ K_estimate = []
 # %%
 DT = 0.1
 STEPS = 500
+
+# %% [markdown]
+# ## Experiment
+
+# %%
+SEED = 0x557CD11
+
+rng = np.random.default_rng(SEED)
+
+# %%
+state = UkfState(
+    Q_x=Q_x,
+    Q_x_cholesky=cholesky(Q_x),
+    Q_y=Q_y,
+    Q_y_cholesky=cholesky(Q_y),
+    measurement=lambda x, Q_cholesky: uhl_measurement(x, Q_cholesky, rng=rng),
+    process=lambda x, n, Q_cholesky: uhl_process_simulation(
+        x, n * DT, DT, "m", Q_cholesky, rng=rng
+    ),
+)
+
+# %%
+for n in range(STEPS):
+    x += [
+        uhl_process_simulation(
+            x[n], n * DT, DT, "m", state.Q_x_cholesky, rng=rng
+        )
+    ]
+    y += [uhl_measurement(x[n], rng=rng)]
+
+    out = ukf(state, K_prediction[n], x_prediction[n], y[n], n)
+
+    K_prediction += [out.K_prediction]
+    K_estimate += [out.K_estimate]
+    x_prediction += [out.x_prediction]
+    x_estimate += [out.x_estimate]
+
+
+# %% [markdown]
+# 1. Plot the actual position and estimated trajectory.
+
+# %%
+x = np.stack(x[:-1])
+x_estimate = np.stack(x_estimate)
+
+# %%
+plt.figure()
+plt.plot(x.squeeze()[:, 0], x.squeeze()[:, 1])
+plt.plot(x_estimate.squeeze()[:, 0], x_estimate.squeeze()[:, 1])
+plt.legend([r"$x$", r"$x_\text{estimate}$"])
+plt.xlabel(r"$x_1$")
+plt.ylabel(r"$x_2$")
+plt.show()
+
+# %% [markdown]
+# 2. Plot the actual velocity trajectory and estimate.
+
+# %%
+plt.figure()
+plt.plot(x.squeeze()[:, 2], x.squeeze()[:, 3])
+plt.plot(x_estimate.squeeze()[:, 2], x_estimate.squeeze()[:, 3])
+plt.legend([r"$v$", r"$v_\text{estimate}$"])
+plt.xlabel(r"$v_1$")
+plt.ylabel(r"$v_2$")
+plt.show()
+
+# %% [markdown]
+# 3. Plot the actual $\beta = \beta_0 e^{x_r}$ trajectory and estimate.
+
+# %%
+plt.figure()
+plt.plot(x.squeeze()[:, 4])
+plt.plot(x_estimate.squeeze()[:, 4])
+plt.legend([r"$\beta$", r"$\beta_\text{estimate}$"])
+plt.xlabel(r"$n$")
+plt.ylabel(r"$\beta$")
+plt.show()
+
+# %% [markdown]
+# ### Comments on Multiple Runs
+#
+# After running the algorithm multiple times (with a different random
+# seed) it varies slightly in the first few time steps but achieves the
+# same steady state.
