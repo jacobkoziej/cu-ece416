@@ -368,9 +368,14 @@ plt.show()
 # 3. Plot the actual $\beta = \beta_0 e^{x_r}$ trajectory and estimate.
 
 # %%
+beta_0 = 0.597983
+beta = beta_0 * np.exp(x.squeeze()[:, 4])
+beta_estimate = beta_0 * np.exp(x_estimate.squeeze()[:, 4])
+
+# %%
 plt.figure()
-plt.plot(x.squeeze()[:, 4])
-plt.plot(x_estimate.squeeze()[:, 4])
+plt.plot(beta)
+plt.plot(beta_estimate)
 plt.legend([r"$\beta$", r"$\beta_\text{estimate}$"])
 plt.xlabel(r"$n$")
 plt.ylabel(r"$\beta$")
