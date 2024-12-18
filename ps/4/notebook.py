@@ -253,7 +253,7 @@ plt.show()
 # %%
 plt.figure()
 plt.plot(
-    x.squeeze()[:ITERATIONS_STABLE, 0], x.squeeze()[:ITERATIONS_STABLE, 1]
+    x.squeeze()[ITERATIONS_STABLE:, 0], x.squeeze()[ITERATIONS_STABLE:, 1]
 )
 plt.xlabel(r"$x_1$")
 plt.ylabel(r"$x_2$")
