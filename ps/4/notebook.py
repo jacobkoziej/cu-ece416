@@ -237,9 +237,9 @@ x_estimate = np.stack(x_estimate)
 
 # %%
 plt.figure()
-plt.plot(x.squeeze()[:, 0], x.squeeze()[:, 1])
-plt.plot(x_prediction.squeeze()[:, 0], x_prediction.squeeze()[:, 1])
-plt.plot(x_estimate.squeeze()[:, 0], x_estimate.squeeze()[:, 1])
+plt.plot(x[:, 0], x[:, 1])
+plt.plot(x_prediction[:, 0], x_prediction[:, 1])
+plt.plot(x_estimate[:, 0], x_estimate[:, 1])
 plt.legend([r"$x$", r"$x_\text{prediction}$", r"$x_\text{estimate}$"])
 plt.xlabel(r"$x_1$")
 plt.ylabel(r"$x_2$")
@@ -252,9 +252,7 @@ plt.show()
 
 # %%
 plt.figure()
-plt.plot(
-    x.squeeze()[ITERATIONS_STABLE:, 0], x.squeeze()[ITERATIONS_STABLE:, 1]
-)
+plt.plot(x[ITERATIONS_STABLE:, 0], x[ITERATIONS_STABLE:, 1])
 plt.xlabel(r"$x_1$")
 plt.ylabel(r"$x_2$")
 plt.title(r"$x_1$ vs $x_2$ for $51 \leq n \leq 100$")
@@ -262,14 +260,14 @@ plt.show()
 
 # %%
 plt.figure()
-plt.plot(norm(x - x_prediction, axis=-2).squeeze())
+plt.plot(norm(x - x_prediction, axis=-2))
 plt.xlabel("n")
 plt.title(r"$||x - x_\text{prediction}||$")
 plt.show()
 
 # %%
 plt.figure()
-plt.plot(norm(x - x_estimate, axis=-2).squeeze())
+plt.plot(norm(x - x_estimate, axis=-2))
 plt.xlabel("n")
 plt.title(r"$||x - x_\text{estimate}||$")
 plt.show()

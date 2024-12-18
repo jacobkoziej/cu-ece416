@@ -345,8 +345,8 @@ x_estimate = np.stack(x_estimate)
 
 # %%
 plt.figure()
-plt.plot(x.squeeze()[:, 0], x.squeeze()[:, 1])
-plt.plot(x_estimate.squeeze()[:, 0], x_estimate.squeeze()[:, 1])
+plt.plot(x[:, 0], x[:, 1])
+plt.plot(x_estimate[:, 0], x_estimate[:, 1])
 plt.legend([r"$x$", r"$x_\text{estimate}$"])
 plt.xlabel(r"$x_1$")
 plt.ylabel(r"$x_2$")
@@ -357,8 +357,8 @@ plt.show()
 
 # %%
 plt.figure()
-plt.plot(x.squeeze()[:, 2], x.squeeze()[:, 3])
-plt.plot(x_estimate.squeeze()[:, 2], x_estimate.squeeze()[:, 3])
+plt.plot(x[:, 2], x[:, 3])
+plt.plot(x_estimate[:, 2], x_estimate[:, 3])
 plt.legend([r"$v$", r"$v_\text{estimate}$"])
 plt.xlabel(r"$v_1$")
 plt.ylabel(r"$v_2$")
@@ -369,8 +369,8 @@ plt.show()
 
 # %%
 beta_0 = 0.597983
-beta = beta_0 * np.exp(x.squeeze()[:, 4])
-beta_estimate = beta_0 * np.exp(x_estimate.squeeze()[:, 4])
+beta = beta_0 * np.exp(x[:, 4])
+beta_estimate = beta_0 * np.exp(x_estimate[:, 4])
 
 # %%
 plt.figure()
