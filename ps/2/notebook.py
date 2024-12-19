@@ -28,6 +28,7 @@ from einops import repeat
 from numpy.linalg import (
     inv,
     norm,
+    svd,
 )
 
 # %% [markdown]
@@ -167,7 +168,7 @@ V = gen_V(rng, noise_dB, N)
 X = gen_X(S, A, V)
 
 # %%
-Q, svdvals, P_H = np.linalg.svd(X)
+Q, svdvals, P_H = svd(X)
 
 # %% tags=["active-ipynb"]
 plt.figure()
@@ -385,7 +386,7 @@ def gen_w_gsc(C_a, R, w_q):
 
 # %%
 C = S
-C_a, _, _ = np.linalg.svd(C)
+C_a, svdvals, _ = svd(C)
 C_a = C_a[:, L:]
 
 g = np.eye(L)
