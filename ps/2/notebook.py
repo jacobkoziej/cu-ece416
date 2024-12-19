@@ -450,6 +450,8 @@ def plot_slice(angle, S, approach, symbol, title):
     for s in S:
         ax.plot(angle, 20 * np.log10(np.abs(s)))
 
+    ax.legend([f"$S(\\Theta_{i + 1})$" for i in range(S.shape[-1])])
+
     fig.supxlabel(f"${symbol}$")
     fig.supylabel(f"{approach} Array Response")
     fig.suptitle(title)
