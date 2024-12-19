@@ -24,6 +24,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from collections import namedtuple
+
 from einops import repeat
 from numpy.linalg import (
     inv,
@@ -486,3 +488,202 @@ np.rad2deg(aoa)  # theta, phi
 
 # %% tags=["active-ipynb"]
 20 * np.log10(np.abs(w_mvdr.conj().T @ S))
+
+# %% [markdown]
+# ## Adaptive Beamforming
+
+
+# %%
+def plot_learning_curve(e, title):
+    e = e.T
+    N = e.shape[-1]
+
+    ax = plt.subplot()
+
+    for e_i in e:
+        ax.plot(np.abs(e_i) ** 2)
+
+    ax.legend([f"$J_{i}$" for i in range(N)])
+    ax.set_xlabel(r"$n$")
+    ax.set_ylabel(r"$J$")
+    ax.set_title(f"{title} Learning Curve")
+
+    return ax
+
+
+# %%
+LmsOutput = namedtuple("LmsOutput", ["w", "e"])
+
+
+# %%
+def lms_mvdr(mu, w, d, u):
+    e = d - (w.conj().T @ u)
+
+    w = w + mu * (u @ e.conj().T)
+
+    return LmsOutput(w, e)
+
+
+# %%
+def lms_gsc(mu, C_a_H, w_q_H, w_a, u):
+    d = w_q_H @ u
+    x = C_a_H @ u
+    e = d - (w_a.conj().T @ x)
+
+    w_a = w_a + mu * (x @ e.conj().T)
+
+    return LmsOutput(w_a, e)
+
+
+# %%
+mu = 0.5 * 2 / svdvals[0] ** 2
+
+
+# %%
+d = w_mvdr.conj().T @ X
+w = [np.zeros(w_mvdr.shape, dtype=w_mvdr.dtype)]
+e = []
+
+# %%
+for n in range(N):
+    out = lms_mvdr(mu, w[n], d[:, n : n + 1], X[:, n : n + 1])
+
+    w += [out.w]
+    e += [out.e]
+
+w = np.array(w).squeeze()
+e = np.array(e).squeeze()
+
+
+# %%
+plt.figure()
+plot_learning_curve(e, "LMS MVDR")
+plt.show()
+
+# %% tags=["active-ipynb"]
+norm(w_mvdr - w[(N // 2) - 1], axis=0)
+
+# %% tags=["active-ipynb"]
+norm(w_mvdr - w[N - 1], axis=0)
+
+# %%
+C_a_H = C_a.conj().T
+w_q_H = w_q.conj().T
+w_a = [np.zeros((M - L, L))]
+e = []
+
+# %%
+for n in range(N):
+    out = lms_gsc(mu, C_a_H, w_q_H, w_a[n], X[:, n : n + 1])
+
+    w_a += [out.w]
+    e += [out.e]
+
+w_a = np.array(w_a).squeeze()
+e = np.array(e).squeeze()
+
+
+# %%
+plt.figure()
+plot_learning_curve(e, "LMS GSC")
+plt.show()
+
+# %% tags=["active-ipynb"]
+norm(w_q - (C_a @ w_a[(N // 2) - 1]), axis=0)
+
+# %% tags=["active-ipynb"]
+norm(w_q - (C_a @ w_a[N - 1]), axis=0)
+
+
+# %%
+RlsOutput = namedtuple("RlsOutput", ["P", "w", "e"])
+
+
+# %%
+def rls_mvdr(llambda, P, w, d, u):
+    s = P @ u
+    k = inv(llambda + (u.conj().T @ s)) * s
+    e = d - (w.conj().T @ u)
+    w = w + (k @ e.conj().T)
+    P = (llambda**-1) * (P - (k @ s.conj().T))
+
+    return RlsOutput(P, w, e)
+
+
+# %%
+def rls_gsc(llambda, P, C_a_H, w_q_H, w_a, u):
+    d = w_q_H @ u
+    x = C_a_H @ u
+
+    pi = P @ x
+
+    k = inv(llambda + (x.conj().T @ pi)) * x
+    P = (llambda**-1) * (P - (k @ x.conj().T @ P))
+    e = d - (w_a.conj().T @ x)
+
+    w_a = w_a + (k @ e.conj().T)
+
+    return RlsOutput(P, w_a, e)
+
+
+# %%
+llambda = 0.9
+delta = 1
+
+# %%
+P = [llambda * np.eye(M)]
+w = [np.zeros(w_mvdr.shape)]
+e = []
+
+# %%
+for n in range(N):
+    out = rls_mvdr(llambda, P[n], w[n], d[:, n : n + 1], X[:, n : n + 1])
+
+    P += [out.P]
+    w += [out.w]
+    e += [out.e]
+
+P = np.array(P).squeeze()
+w = np.array(w).squeeze()
+e = np.array(e).squeeze()
+
+
+# %%
+plt.figure()
+plot_learning_curve(e, "RLS MVDR")
+plt.show()
+
+# %% tags=["active-ipynb"]
+norm(w_mvdr - w[(N // 2) - 1], axis=0)
+
+# %% tags=["active-ipynb"]
+norm(w_mvdr - w[N - 1], axis=0)
+
+# %%
+P = [llambda * np.eye(M - L)]
+w_a = [np.zeros((M - L, L))]
+e = []
+
+# %%
+for n in range(N):
+    out = rls_gsc(llambda, P[n], C_a_H, w_q_H, w_a[n], X[:, n : n + 1])
+
+    P += [out.P]
+    w_a += [out.w]
+    e += [out.e]
+
+P = np.array(P).squeeze()
+w_a = np.array(w_a).squeeze()
+e = np.array(e).squeeze()
+
+
+# %%
+plt.figure()
+plot_learning_curve(e, "RLS GSC")
+plt.show()
+
+# %% tags=["active-ipynb"]
+norm(w_q - (C_a @ w_a[(N // 2) - 1]), axis=0)
+
+# %% tags=["active-ipynb"]
+norm(w_q - (C_a @ w_a[N - 1]), axis=0)
