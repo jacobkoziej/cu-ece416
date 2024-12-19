@@ -24,11 +24,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from einops import (
-    einsum,
-    rearrange,
-    repeat,
-)
+from einops import repeat
+from numpy.linalg import norm
 
 # %% [markdown]
 # ## Sensor Array Signal Model
@@ -49,8 +46,7 @@ def gen_a(aoa):
             np.sin(theta) * np.cos(phi),
             np.sin(theta) * np.sin(phi),
             np.cos(theta),
-        ],
-        axis=-1,
+        ]
     )
 
 
@@ -63,17 +59,12 @@ def gen_r(m, d):
 
 # %%
 def gen_S(a, r, llambda):
-    assert a.shape[-1] == 3
+    assert a.shape[-2] == 3
     assert r.shape[-1] == 3
 
-    if a.ndim <= 2:
-        a = rearrange(a, "... xyz -> ... 1 xyz")
-
-    if r.ndim <= 1:
-        r = rearrange(r, "xyz -> 1 xyz")
-
-    S = -1j * np.pi * einsum(a, r, "... M i, ... M i -> ... M") / llambda
-    S = np.exp(S) / np.sqrt(S.shape[-1])
+    S = -1j * np.pi * (r @ a) / llambda
+    M = S.shape[-2]
+    S = np.exp(S) / np.sqrt(M)
 
     return S
 
@@ -81,11 +72,11 @@ def gen_S(a, r, llambda):
 # %%
 def gen_A(rng, dB, N):
     scale = np.sqrt(10 ** (dB / 10))
-    scale = repeat(scale, "... L -> ... N L", N=N)
+    scale = repeat(scale, "... L -> ... L N", N=N)
 
-    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(
-        2
-    )
+    A = rng.normal(scale=scale) + 1j * rng.normal(scale=scale) / np.sqrt(2)
+
+    return A
 
 
 # %%
@@ -93,32 +84,30 @@ def gen_V(rng, dB, N):
     M = dB.shape[-1]
 
     scale = np.sqrt((10 ** (dB / 10)) / M)
-    scale = repeat(scale, "... M -> ... N M", N=N)
+    scale = repeat(scale, "... M -> ... M N", N=N)
 
-    return (rng.normal(scale=scale) + 1j * rng.normal(scale=scale)) / np.sqrt(
-        2
-    )
+    V = rng.normal(scale=scale) + 1j * rng.normal(scale=scale) / np.sqrt(2)
+
+    return V
 
 
 def gen_X(S, A, V):
-    return einsum(S, A, "... L M, ... N L -> ... N M") + V
+    return (S @ A) + V
 
 
 def theoretical_correlation(S, signal_dB, noise_dB):
     R_A = np.diag(np.sqrt(10 ** (signal_dB / 10)))
     R_V = np.diag(np.sqrt(10 ** (noise_dB / 10)))
 
-    R_U = einsum(S.conj(), R_A, "... j i, ... j k -> ... i k")
-    R_U = einsum(R_U, S, "... i j, ... j k -> ... i k")
-    R_U += R_V
+    R_U = (S @ R_A @ S.conj().T) + R_V
 
     return R_U
 
 
 def estimated_correlation(X):
-    N = X.shape[-2]
+    N = X.shape[-1]
 
-    return einsum(X, X.conj(), "... j i, ... j k -> ... i k") / N
+    return (X @ X.conj().T) / N
 
 
 # %% [markdown]
@@ -175,24 +164,16 @@ V = gen_V(rng, noise_dB, N)
 X = gen_X(S, A, V)
 
 # %%
-P_H, svdvals, Q = np.linalg.svd(X)
-
-
-# %%
-def plot_svdvals(svdvals):
-    ax = plt.subplot()
-
-    ax.stem(svdvals)
-    ax.set_xticks(range(len(svdvals)))
-    ax.set_xticklabels([])
-    ax.set_xlabel(r"$\sigma$")
-    ax.set_title("Singular Values of $X$ in Descending Order")
-
-    return ax
-
+Q, svdvals, P_H = np.linalg.svd(X)
 
 # %% tags=["active-ipynb"]
-_ = plot_svdvals(svdvals)
+plt.figure()
+plt.stem(svdvals)
+plt.xticks(range(len(svdvals)))
+plt.xticks([])
+plt.xlabel(r"$\sigma$")
+plt.title("Singular Values of $X$ in Descending Order")
+plt.show()
 
 # %%
 drop_off = svdvals[3] / svdvals[2]
@@ -202,8 +183,8 @@ drop_off
 
 # %% [markdown]
 # (b) Working off the theoretical correlation matrix $R$, compute the
-# eigenvalues (sorted in descending order), draw a stem plot, and confirm there are 3 dominant
-# values. Compare $\lambda_4 / \lambda_3$.
+# eigenvalues (sorted in descending order), draw a stem plot, and
+# confirm there are 3 dominant values. Compare $\lambda_4 / \lambda_3$.
 
 # %%
 R_theoretical = theoretical_correlation(S, signal_dB, noise_dB)
@@ -217,24 +198,13 @@ def get_eigvals(A):
 # %%
 eigvals = get_eigvals(R_theoretical)
 
-
-# %%
-def plot_eigvals(eigvals):
-    ax = plt.subplot()
-
-    ax.stem(np.abs(eigvals))
-    ax.set_xticks(range(len(eigvals)))
-    ax.set_xticklabels([])
-    ax.set_xlabel(r"$|\,\lambda|$")
-    ax.set_title(
-        r"Eigen Values of $R_{\text{theoretical}}$ in Descending Order"
-    )
-
-    return ax
-
-
 # %% tags=["active-ipynb"]
-_ = plot_eigvals(eigvals)
+plt.figure()
+plt.stem(np.abs(eigvals))
+plt.xticks(range(len(eigvals)), [])
+plt.xlabel(r"$|\,\lambda|$")
+plt.title(r"Eigen Values of $R_{\text{theoretical}}$ in Descending Order")
+plt.show()
 
 # %%
 theoretical_drop_off = eigvals[3] / eigvals[2]
@@ -248,13 +218,13 @@ theoretical_drop_off
 # 3$, for the source singular vectors. These should be 0 in theory.
 
 # %%
-Q_L = Q[:L]
+Q_L = Q[:, :L]
 
-P_N = einsum(Q_L, Q_L.conj(), "j i, j k -> i k")
+P_N = Q_L @ Q_L.conj().T
 P_N = np.eye(*P_N.shape) - P_N
 
 # %% tags=["active-ipynb"]
-np.linalg.norm(einsum(P_N, S, "i j, ... k j -> ... i k"), axis=-1)
+norm(P_N @ S, axis=-1)
 
 # %% [markdown]
 # (d) We want to examine the MUSIC spectrum based on the SVD of the
@@ -280,10 +250,7 @@ phi = phi.flatten()
 
 # %%
 def music(S, P_N):
-    S_music = einsum(P_N, S, "... i j, ... k j -> ... i k")
-    S_music = einsum(S.conj(), S_music, "... i j, ... j k -> ... i k")
-
-    return 1 / S_music
+    return np.diagonal(1 / (S.conj().T @ P_N @ S))
 
 
 # %%
@@ -296,10 +263,11 @@ aoa_surface = np.stack([theta, phi], axis=-1)
 a_surface = gen_a(aoa_surface)
 S_surface = gen_S(a_surface, r, llambda)
 R_estimate = estimated_correlation(X)
+R_estimate_inv = np.linalg.inv(R_estimate)
 
 # %%
-S_music = np.diagonal(music(S_surface, P_N))
-S_mvdr = np.diagonal(mvdr(S_surface, np.linalg.inv(R_estimate)))
+S_music = music(S_surface, P_N)
+S_mvdr = mvdr(S_surface, R_estimate_inv)
 
 # %%
 S_music = S_music.reshape(grid_shape)
@@ -353,10 +321,20 @@ def plot_slice(angle, S, approach, symbol, title):
 
 
 # %% tags=["active-ipynb"]
-_ = plot_slice(phi_theta, S_music_theta, "MUSIC", r"\phi", r"$\theta = 30^{\circ}$")
+plt.figure()
+plot_slice(
+    phi_theta,
+    S_music_theta,
+    "MUSIC",
+    r"\phi",
+    r"$\theta = 30^{\circ}$",
+)
+plt.show()
 
 # %% tags=["active-ipynb"]
-_ = plot_slice(phi_theta, S_mvdr_theta, "MVDR", r"\phi", r"$\theta = 30^{\circ}$")
+plt.figure()
+plot_slice(phi_theta, S_mvdr_theta, "MVDR", r"\phi", r"$\theta = 30^{\circ}$")
+plt.show()
 
 # %% [markdown]
 # (f) Repeat for a slice at $\phi = 30^{\circ}$ and $0^{\circ} \le
@@ -371,7 +349,11 @@ S_mvdr_phi = S_mvdr[phi_index]
 
 
 # %% tags=["active-ipynb"]
-_ = plot_slice(theta_phi, S_music_phi, "MUSIC", r"\theta", r"$\phi = 30^{\circ}$")
+plt.figure()
+plot_slice(theta_phi, S_music_phi, "MUSIC", r"\theta", r"$\phi = 30^{\circ}$")
+plt.show()
 
 # %% tags=["active-ipynb"]
-_ = plot_slice(theta_phi, S_mvdr_phi, "MVDR", r"\theta", r"$\phi = 30^{\circ}$")
+plt.figure()
+plot_slice(theta_phi, S_mvdr_phi, "MVDR", r"\theta", r"$\phi = 30^{\circ}$")
+plt.show()
