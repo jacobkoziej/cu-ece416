@@ -25,7 +25,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from einops import repeat
-from numpy.linalg import norm
+from numpy.linalg import (
+    inv,
+    norm,
+)
 
 # %% [markdown]
 # ## Sensor Array Signal Model
@@ -357,3 +360,125 @@ plt.show()
 plt.figure()
 plot_slice(theta_phi, S_mvdr_phi, "MVDR", r"\theta", r"$\phi = 30^{\circ}$")
 plt.show()
+
+# %% [markdown]
+# ## Optimal Beamforming: MVDR and GSC
+
+
+# %%
+def gen_w_q(C, g):
+    return (C @ inv(C.conj().T @ C)) @ g
+
+
+# %%
+def gen_w_mvdr(S, R_inverse):
+    return (R_inverse @ S) * mvdr(S, R_inverse)
+
+
+# %%
+def gen_w_gsc(C_a, R, w_q):
+    w_gsc = C_a @ inv(C_a.conj().T @ R @ C_a) @ C_a.conj().T @ R
+    w_gsc = (np.eye(*w_gsc.shape) - w_gsc) @ w_q
+
+    return w_gsc
+
+
+# %%
+C = S[:, :L]
+C_a = S[:, L:]
+
+g = np.eye(L)
+w_q = gen_w_q(C, g)
+
+w_mvdr = gen_w_mvdr(S, R_estimate_inv)
+w_gsc = gen_w_gsc(C_a, R_estimate, w_q)
+
+# %%
+S_mvdr = w_mvdr.conj().T @ S_surface
+S_gsc = w_gsc.conj().T @ S_surface
+
+# %%
+S_mvdr = S_mvdr.reshape((-1,) + grid_shape)
+S_gsc = S_gsc.reshape((-1,) + grid_shape)
+
+
+# %%
+def plot_contour(theta, phi, S, aoa, approach):
+    fig, axs = plt.subplots(1, S.shape[0])
+
+    for i, (s, ax) in enumerate(zip(S, axs)):
+        ax.contour(theta, phi, np.abs(s))
+        ax.scatter(aoa[..., 0], aoa[..., 1], c="red")
+        ax.set_title(f"AOA = {i}")
+
+    fig.supxlabel(r"$\theta$")
+    fig.supylabel(r"$\phi$")
+    fig.suptitle(f"{approach} Array Response")
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %% tags=["active-ipynb"]
+fig, _ = plot_contour(theta, phi, S_mvdr, aoa, "MVDR")
+fig.show()
+
+
+# %% tags=["active-ipynb"]
+fig, _ = plot_contour(theta, phi, S_gsc, aoa, "GSC")
+fig.show()
+
+# %%
+phi_theta = np.linspace(-np.pi, np.pi, 1_000)
+aoa_theta = np.zeros((phi_theta.shape[0], 2))
+aoa_theta[:, 0] = np.deg2rad(30)
+aoa_theta[:, 1] = phi_theta
+a_theta = gen_a(aoa_theta)
+S_theta = gen_S(a_theta, r, llambda)
+
+# %%
+S_mvdr_theta = w_mvdr.conj().T @ S_theta
+S_gsc_theta = w_gsc.conj().T @ S_theta
+
+
+# %%
+def plot_slice(angle, S, approach, symbol, title):
+    fig, ax = plt.subplots(1, 1)
+
+    for s in S:
+        ax.plot(angle, 20 * np.log10(np.abs(s)))
+
+    fig.supxlabel(f"${symbol}$")
+    fig.supylabel(f"{approach} Array Response")
+    fig.suptitle(title)
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# %% tags=["active-ipynb"]
+fig, _ = plot_slice(
+    phi_theta,
+    S_mvdr_theta,
+    "MVDR",
+    r"\phi",
+    r"$\theta = 30^{\circ}$",
+)
+fig.show()
+
+
+# %% tags=["active-ipynb"]
+fig, _ = plot_slice(
+    phi_theta,
+    S_gsc_theta,
+    "GSC",
+    r"\phi",
+    r"$\theta = 30^{\circ}$",
+)
+fig.show()
+
+# %% tags=["active-ipynb"]
+np.rad2deg(aoa)  # theta, phi
+
+# %% tags=["active-ipynb"]
+20 * np.log10(np.abs(w_mvdr.conj().T @ S))
