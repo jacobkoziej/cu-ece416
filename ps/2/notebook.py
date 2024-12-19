@@ -28,6 +28,7 @@ from collections import namedtuple
 
 from einops import repeat
 from numpy.linalg import (
+    cholesky,
     inv,
     norm,
     svd,
@@ -38,7 +39,7 @@ from numpy.linalg import (
 
 
 # %%
-def gen_a(aoa):
+def gen_a(aoa, *, C=None):
     assert aoa.shape[-1] == 2
 
     if aoa.ndim > 1:
@@ -47,13 +48,18 @@ def gen_a(aoa):
     theta = aoa[..., 0]
     phi = aoa[..., 1]
 
-    return np.stack(
+    a = np.stack(
         [
             np.sin(theta) * np.cos(phi),
             np.sin(theta) * np.sin(phi),
             np.cos(theta),
         ]
     )
+
+    if C is not None:
+        a = a @ C
+
+    return a
 
 
 # %%
@@ -162,8 +168,20 @@ SEED = 0xBD4ED172
 rng = np.random.default_rng(SEED)
 
 # %%
+correlated = False
+C = cholesky(
+    [
+        [1, 0.3, 0],
+        [0.3, 1, 0],
+        [0, 0, 1],
+    ]
+    if correlated
+    else np.eye(3)
+)
+
+# %%
 r = gen_r(m, d)
-a = gen_a(aoa)
+a = gen_a(aoa, C=C)
 S = gen_S(a, r, llambda)
 A = gen_A(rng, signal_dB, N)
 V = gen_V(rng, noise_dB, N)
@@ -687,3 +705,22 @@ norm(w_q - (C_a @ w_a[(N // 2) - 1]), axis=0)
 
 # %% tags=["active-ipynb"]
 norm(w_q - (C_a @ w_a[N - 1]), axis=0)
+
+# %% [markdown]
+# ## Variations
+
+# %% [markdown]
+# (a) What happens when the noise power is 10dB above the **primary**
+# source?
+#
+# Everything still works!
+
+# %% [markdown]
+# (b) Now reduce the number of samples, in particular $N < 2M$.
+#
+# Things start to fall apart and fast.
+
+# %% [markdown]
+# (c) Now how does it behave when source correlations are significant?
+#
+# Sensor arrays responses begin to start interfering with one another.
