@@ -384,8 +384,9 @@ def gen_w_gsc(C_a, R, w_q):
 
 
 # %%
-C = S[:, :L]
-C_a = S[:, L:]
+C = S
+C_a, _, _ = np.linalg.svd(C)
+C_a = C_a[:, L:]
 
 g = np.eye(L)
 w_q = gen_w_q(C, g)
